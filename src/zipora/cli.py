@@ -9,6 +9,7 @@ from tqdm import tqdm
 
 from zipora.core.archive_service import ArchiveService, convert_archive
 from zipora.core.favorites import FavoritesStore
+from zipora.core.hotspots import HotspotCollector, HotspotStore, load_sources
 from zipora.core.models import ArchiveFormat, CompressionOptions, ExtractionOptions, ProgressEvent
 from zipora.core.utils import detect_format
 
@@ -74,6 +75,21 @@ def main(argv: list[str] | None = None) -> int:
     favorites_add.add_argument("path", type=Path)
     favorites_remove = favorites_subparsers.add_parser("remove", help="Remove favorite")
     favorites_remove.add_argument("path", type=Path)
+
+    hotspots_parser = subparsers.add_parser("hotspots", help="Collect hotspot attribution data")
+    hotspots_subparsers = hotspots_parser.add_subparsers(dest="hotspots_command")
+    hotspots_collect = hotspots_subparsers.add_parser("collect", help="Fetch configured sources")
+    hotspots_collect.add_argument("sources", type=Path)
+    hotspots_collect.add_argument("--db", type=Path)
+    hotspots_collect.add_argument("--min-interval", type=float, default=1.0)
+    hotspots_collect.add_argument("--timeout", type=float, default=10.0)
+    hotspots_list = hotspots_subparsers.add_parser("list", help="List stored records")
+    hotspots_list.add_argument("--db", type=Path)
+    hotspots_list.add_argument("--limit", type=int, default=20)
+    hotspots_export = hotspots_subparsers.add_parser("export", help="Export records to CSV")
+    hotspots_export.add_argument("destination", type=Path)
+    hotspots_export.add_argument("--db", type=Path)
+    hotspots_export.add_argument("--limit", type=int, default=1000)
 
     convert_parser = subparsers.add_parser("convert", help="Convert archive format")
     convert_parser.add_argument("source", type=Path)
@@ -174,6 +190,8 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if args.command == "favorites":
         return _favorites(args)
+    if args.command == "hotspots":
+        return _hotspots(args)
     return 1
 
 
@@ -200,6 +218,31 @@ def _favorites(args: argparse.Namespace) -> int:
         return 0
     for item in store.list_items():
         print(f"{item.name}\t{item.path}")
+    return 0
+
+
+def _hotspots(args: argparse.Namespace) -> int:
+    store = HotspotStore(args.db)
+    if args.hotspots_command == "collect":
+        from zipora.core.hotspots import HotspotFetcher
+
+        collector = HotspotCollector(
+            HotspotFetcher(min_interval=args.min_interval, timeout=args.timeout)
+        )
+        records = collector.collect(load_sources(args.sources))
+        inserted = store.save_records(records)
+        print(f"Fetched: {len(records)}")
+        print(f"Inserted: {inserted}")
+        return 0
+    if args.hotspots_command == "export":
+        rows = store.export_csv(args.destination, limit=args.limit)
+        print(f"Exported: {rows}")
+        return 0
+    for record in store.list_records(limit=args.limit):
+        print(
+            f"{record.observed_at}\t{record.source}\t{record.topic}\t"
+            f"{record.symbol}\t{record.symbol_name}\t{record.reason}"
+        )
     return 0
 
 

@@ -1,0 +1,664 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>热点归因采集控制台</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #0a1020;
+        --panel: rgba(16, 25, 48, 0.78);
+        --panel-strong: rgba(20, 33, 65, 0.96);
+        --line: rgba(148, 163, 184, 0.18);
+        --text: #e5edf8;
+        --muted: #93a4ba;
+        --cyan: #22d3ee;
+        --blue: #60a5fa;
+        --green: #34d399;
+        --orange: #fb923c;
+        --red: #fb7185;
+        --shadow: 0 28px 70px rgba(0, 0, 0, 0.35);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background:
+          radial-gradient(circle at 12% 10%, rgba(34, 211, 238, 0.18), transparent 34%),
+          radial-gradient(circle at 88% 0%, rgba(96, 165, 250, 0.16), transparent 32%),
+          linear-gradient(135deg, #070b15 0%, var(--bg) 48%, #101827 100%);
+        color: var(--text);
+        font-family:
+          Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      button,
+      input,
+      select {
+        font: inherit;
+      }
+
+      .shell {
+        width: min(1220px, calc(100% - 32px));
+        margin: 0 auto;
+        padding: 34px 0 48px;
+      }
+
+      .hero {
+        display: grid;
+        grid-template-columns: 1.2fr 0.8fr;
+        gap: 22px;
+        align-items: stretch;
+      }
+
+      .hero-card,
+      .panel {
+        border: 1px solid var(--line);
+        background: var(--panel);
+        backdrop-filter: blur(18px);
+        border-radius: 28px;
+        box-shadow: var(--shadow);
+      }
+
+      .hero-card {
+        padding: 34px;
+        overflow: hidden;
+        position: relative;
+      }
+
+      .hero-card::after {
+        content: "";
+        position: absolute;
+        inset: auto -120px -130px auto;
+        width: 300px;
+        height: 300px;
+        border-radius: 50%;
+        background: rgba(34, 211, 238, 0.16);
+        filter: blur(10px);
+      }
+
+      .eyebrow {
+        display: inline-flex;
+        gap: 8px;
+        align-items: center;
+        margin-bottom: 18px;
+        color: var(--cyan);
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+      }
+
+      .eyebrow::before {
+        content: "";
+        width: 8px;
+        height: 8px;
+        border-radius: 999px;
+        background: var(--green);
+        box-shadow: 0 0 18px var(--green);
+      }
+
+      h1 {
+        max-width: 760px;
+        margin: 0;
+        font-size: clamp(34px, 5vw, 68px);
+        line-height: 0.95;
+        letter-spacing: -0.06em;
+      }
+
+      .subtitle {
+        max-width: 680px;
+        margin: 22px 0 0;
+        color: var(--muted);
+        font-size: 16px;
+        line-height: 1.7;
+      }
+
+      .action-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-top: 28px;
+      }
+
+      .button {
+        border: 0;
+        border-radius: 999px;
+        color: #06121c;
+        background: linear-gradient(135deg, var(--cyan), var(--blue));
+        padding: 12px 18px;
+        font-weight: 800;
+        cursor: pointer;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+      }
+
+      .button.secondary {
+        color: var(--text);
+        background: rgba(148, 163, 184, 0.12);
+        border: 1px solid var(--line);
+      }
+
+      .button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 16px 34px rgba(34, 211, 238, 0.18);
+      }
+
+      .health-card {
+        padding: 24px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        min-height: 100%;
+      }
+
+      .status-line {
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 16px 0;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .status-line:last-child {
+        border-bottom: 0;
+      }
+
+      .status-line span {
+        color: var(--muted);
+      }
+
+      .status-line strong {
+        text-align: right;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 16px;
+        margin-top: 18px;
+      }
+
+      .metric {
+        padding: 22px;
+        border-radius: 24px;
+        border: 1px solid var(--line);
+        background: rgba(15, 23, 42, 0.68);
+      }
+
+      .metric span {
+        display: block;
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .metric strong {
+        display: block;
+        margin-top: 10px;
+        font-size: 32px;
+        letter-spacing: -0.04em;
+      }
+
+      .main {
+        display: grid;
+        grid-template-columns: 0.72fr 1.28fr;
+        gap: 18px;
+        margin-top: 18px;
+      }
+
+      .panel {
+        padding: 22px;
+      }
+
+      .panel-title {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        align-items: center;
+        margin-bottom: 18px;
+      }
+
+      .panel-title h2 {
+        margin: 0;
+        font-size: 20px;
+        letter-spacing: -0.02em;
+      }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        border-radius: 999px;
+        padding: 7px 10px;
+        color: var(--cyan);
+        background: rgba(34, 211, 238, 0.08);
+        border: 1px solid rgba(34, 211, 238, 0.18);
+        font-size: 12px;
+        font-weight: 800;
+      }
+
+      .source-list {
+        display: grid;
+        gap: 12px;
+      }
+
+      .source {
+        padding: 16px;
+        border-radius: 20px;
+        background: rgba(148, 163, 184, 0.08);
+        border: 1px solid var(--line);
+      }
+
+      .source-head {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        align-items: center;
+      }
+
+      .source-name {
+        font-weight: 800;
+      }
+
+      .source-url {
+        margin-top: 8px;
+        color: var(--muted);
+        font-size: 13px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .form {
+        display: grid;
+        grid-template-columns: 1fr 160px;
+        gap: 12px;
+        margin-bottom: 16px;
+      }
+
+      .field {
+        width: 100%;
+        color: var(--text);
+        background: rgba(3, 7, 18, 0.5);
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        padding: 12px 14px;
+        outline: 0;
+      }
+
+      .field:focus {
+        border-color: rgba(34, 211, 238, 0.62);
+        box-shadow: 0 0 0 4px rgba(34, 211, 238, 0.08);
+      }
+
+      .table-wrap {
+        overflow: auto;
+        border-radius: 22px;
+        border: 1px solid var(--line);
+      }
+
+      table {
+        width: 100%;
+        min-width: 760px;
+        border-collapse: collapse;
+        background: rgba(15, 23, 42, 0.72);
+      }
+
+      th,
+      td {
+        padding: 14px 16px;
+        border-bottom: 1px solid var(--line);
+        text-align: left;
+        vertical-align: top;
+      }
+
+      th {
+        position: sticky;
+        top: 0;
+        z-index: 1;
+        color: var(--muted);
+        background: var(--panel-strong);
+        font-size: 12px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      tr:last-child td {
+        border-bottom: 0;
+      }
+
+      .topic {
+        display: inline-flex;
+        color: #031018;
+        background: linear-gradient(135deg, var(--cyan), var(--green));
+        border-radius: 999px;
+        padding: 6px 10px;
+        font-size: 12px;
+        font-weight: 900;
+      }
+
+      .reason {
+        max-width: 330px;
+        color: #cbd5e1;
+        line-height: 1.5;
+      }
+
+      .heat {
+        color: var(--orange);
+        font-weight: 900;
+      }
+
+      .timeline {
+        display: grid;
+        gap: 14px;
+      }
+
+      .event {
+        position: relative;
+        padding-left: 22px;
+      }
+
+      .event::before {
+        content: "";
+        position: absolute;
+        top: 5px;
+        left: 0;
+        width: 10px;
+        height: 10px;
+        border-radius: 999px;
+        background: var(--cyan);
+        box-shadow: 0 0 16px rgba(34, 211, 238, 0.65);
+      }
+
+      .event strong {
+        display: block;
+      }
+
+      .event span {
+        display: block;
+        margin-top: 4px;
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .empty {
+        padding: 28px;
+        color: var(--muted);
+        text-align: center;
+      }
+
+      @media (max-width: 920px) {
+        .hero,
+        .main,
+        .grid {
+          grid-template-columns: 1fr;
+        }
+
+        .form {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="shell">
+      <section class="hero">
+        <div class="hero-card">
+          <div class="eyebrow">Hotspot Attribution</div>
+          <h1>热点归因采集控制台</h1>
+          <p class="subtitle">
+            面向公开或已授权 JSON 数据源的归因采集系统，可查看采集源、热点主题、个股映射、热度分和归因文本。这个页面使用前端模拟数据，后端 CLI 已支持采集、SQLite 去重和 CSV 导出。
+          </p>
+          <div class="action-row">
+            <button class="button" id="simulateButton">模拟采集一批数据</button>
+            <button class="button secondary" id="exportButton">导出当前视图 CSV</button>
+          </div>
+        </div>
+        <aside class="panel health-card">
+          <div class="panel-title">
+            <h2>系统状态</h2>
+            <span class="pill">DEMO ONLINE</span>
+          </div>
+          <div>
+            <div class="status-line"><span>采集模式</span><strong>授权源 JSON</strong></div>
+            <div class="status-line"><span>存储层</span><strong>SQLite 去重</strong></div>
+            <div class="status-line"><span>导出格式</span><strong>CSV</strong></div>
+            <div class="status-line"><span>请求控制</span><strong>限速 + 超时</strong></div>
+          </div>
+        </aside>
+      </section>
+
+      <section class="grid" aria-label="指标概览">
+        <div class="metric"><span>热点记录</span><strong id="totalRecords">0</strong></div>
+        <div class="metric"><span>数据源</span><strong id="sourceCount">0</strong></div>
+        <div class="metric"><span>平均热度</span><strong id="avgHeat">0</strong></div>
+        <div class="metric"><span>最高热度</span><strong id="maxHeat">0</strong></div>
+      </section>
+
+      <section class="main">
+        <aside class="panel">
+          <div class="panel-title">
+            <h2>数据源</h2>
+            <span class="pill">AUTHORIZED</span>
+          </div>
+          <div class="source-list" id="sourceList"></div>
+        </aside>
+
+        <section class="panel">
+          <div class="panel-title">
+            <h2>热点归因数据</h2>
+            <span class="pill" id="visibleCount">0 ROWS</span>
+          </div>
+          <div class="form">
+            <input class="field" id="searchInput" placeholder="搜索主题、股票、归因文本" />
+            <select class="field" id="sourceFilter"></select>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>主题</th>
+                  <th>证券</th>
+                  <th>热度</th>
+                  <th>归因</th>
+                  <th>来源</th>
+                  <th>时间</th>
+                </tr>
+              </thead>
+              <tbody id="recordRows"></tbody>
+            </table>
+          </div>
+        </section>
+      </section>
+
+      <section class="panel" style="margin-top: 18px">
+        <div class="panel-title">
+          <h2>采集流水线</h2>
+          <span class="pill">CLI READY</span>
+        </div>
+        <div class="timeline">
+          <div class="event"><strong>配置授权数据源</strong><span>编辑 examples/hotspot_sources.demo.json 或使用你的授权 JSON 接口。</span></div>
+          <div class="event"><strong>执行采集命令</strong><span>PYTHONPATH=src python3 -m zipora.cli hotspots collect sources.json --db hotspots.sqlite3</span></div>
+          <div class="event"><strong>查看或导出结果</strong><span>使用 hotspots list 查看记录，使用 hotspots export 导出 CSV。</span></div>
+        </div>
+      </section>
+    </main>
+
+    <script>
+      const sources = [
+        {
+          name: "demo-hotspots",
+          url: "examples/hotspot_sources.demo.json",
+          status: "已连接",
+          records: 6,
+        },
+        {
+          name: "authorized-market-api",
+          url: "https://example.com/authorized/hotspots.json",
+          status: "待配置",
+          records: 0,
+        },
+      ];
+
+      let records = [
+        {
+          topic: "AI 应用",
+          symbol: "000001",
+          symbolName: "Demo Stock",
+          heat: 88,
+          reason: "AI 应用落地加速，行业订单和云端推理需求同步提升。",
+          source: "demo-hotspots",
+          observedAt: "2026-05-12 14:31",
+        },
+        {
+          topic: "机器人",
+          symbol: "300001",
+          symbolName: "Demo Tech",
+          heat: 92.5,
+          reason: "产业政策与订单增长推动关注度提升，核心零部件方向表现活跃。",
+          source: "demo-hotspots",
+          observedAt: "2026-05-12 14:31",
+        },
+        {
+          topic: "算力基础设施",
+          symbol: "688001",
+          symbolName: "Compute Lab",
+          heat: 95,
+          reason: "模型训练和推理需求提升，液冷、服务器和高速互联链条同步升温。",
+          source: "demo-hotspots",
+          observedAt: "2026-05-12 14:28",
+        },
+        {
+          topic: "低空经济",
+          symbol: "002001",
+          symbolName: "Aero Demo",
+          heat: 84,
+          reason: "地方试点和应用场景扩展带来主题催化，产业链关注度提升。",
+          source: "demo-hotspots",
+          observedAt: "2026-05-12 14:20",
+        },
+      ];
+
+      const rowsEl = document.querySelector("#recordRows");
+      const sourceListEl = document.querySelector("#sourceList");
+      const sourceFilterEl = document.querySelector("#sourceFilter");
+      const searchInputEl = document.querySelector("#searchInput");
+      const visibleCountEl = document.querySelector("#visibleCount");
+      const totalRecordsEl = document.querySelector("#totalRecords");
+      const sourceCountEl = document.querySelector("#sourceCount");
+      const avgHeatEl = document.querySelector("#avgHeat");
+      const maxHeatEl = document.querySelector("#maxHeat");
+
+      function renderSources() {
+        sourceListEl.innerHTML = sources
+          .map(
+            (source) => `
+              <article class="source">
+                <div class="source-head">
+                  <span class="source-name">${source.name}</span>
+                  <span class="pill">${source.status}</span>
+                </div>
+                <div class="source-url">${source.url}</div>
+              </article>
+            `,
+          )
+          .join("");
+
+        const selected = sourceFilterEl.value || "all";
+        sourceFilterEl.innerHTML = ["<option value='all'>全部来源</option>"]
+          .concat(sources.map((source) => `<option value="${source.name}">${source.name}</option>`))
+          .join("");
+        sourceFilterEl.value = selected;
+      }
+
+      function getFilteredRecords() {
+        const query = searchInputEl.value.trim().toLowerCase();
+        const source = sourceFilterEl.value;
+        return records.filter((record) => {
+          const text = `${record.topic} ${record.symbol} ${record.symbolName} ${record.reason}`.toLowerCase();
+          const matchesText = !query || text.includes(query);
+          const matchesSource = source === "all" || record.source === source;
+          return matchesText && matchesSource;
+        });
+      }
+
+      function renderRecords() {
+        const visibleRecords = getFilteredRecords();
+        if (visibleRecords.length === 0) {
+          rowsEl.innerHTML = `<tr><td colspan="6"><div class="empty">当前筛选条件下没有数据</div></td></tr>`;
+        } else {
+          rowsEl.innerHTML = visibleRecords
+            .map(
+              (record) => `
+                <tr>
+                  <td><span class="topic">${record.topic}</span></td>
+                  <td><strong>${record.symbol}</strong><br /><span style="color: var(--muted)">${record.symbolName}</span></td>
+                  <td class="heat">${record.heat}</td>
+                  <td class="reason">${record.reason}</td>
+                  <td>${record.source}</td>
+                  <td>${record.observedAt}</td>
+                </tr>
+              `,
+            )
+            .join("");
+        }
+
+        const heats = records.map((record) => Number(record.heat)).filter(Number.isFinite);
+        const avg = heats.length ? heats.reduce((sum, heat) => sum + heat, 0) / heats.length : 0;
+        totalRecordsEl.textContent = records.length;
+        sourceCountEl.textContent = new Set(records.map((record) => record.source)).size;
+        avgHeatEl.textContent = avg.toFixed(1);
+        maxHeatEl.textContent = heats.length ? Math.max(...heats).toFixed(1) : "0";
+        visibleCountEl.textContent = `${visibleRecords.length} ROWS`;
+      }
+
+      function simulateCollect() {
+        const now = new Date().toLocaleString("zh-CN", {
+          hour12: false,
+          month: "2-digit",
+          day: "2-digit",
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+        records = [
+          {
+            topic: "智能驾驶",
+            symbol: "300777",
+            symbolName: "Drive Demo",
+            heat: 91,
+            reason: "端到端模型和量产车型发布带来催化，传感器和域控链条活跃。",
+            source: "demo-hotspots",
+            observedAt: now,
+          },
+          ...records,
+        ];
+        renderRecords();
+      }
+
+      function exportCsv() {
+        const header = ["topic", "symbol", "symbolName", "heat", "reason", "source", "observedAt"];
+        const lines = getFilteredRecords().map((record) =>
+          header.map((key) => `"${String(record[key]).replaceAll('"', '""')}"`).join(","),
+        );
+        const blob = new Blob([[header.join(","), ...lines].join("\n")], { type: "text/csv" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = "hotspot-view.csv";
+        link.click();
+        URL.revokeObjectURL(url);
+      }
+
+      document.querySelector("#simulateButton").addEventListener("click", simulateCollect);
+      document.querySelector("#exportButton").addEventListener("click", exportCsv);
+      sourceFilterEl.addEventListener("change", renderRecords);
+      searchInputEl.addEventListener("input", renderRecords);
+
+      renderSources();
+      renderRecords();
+    </script>
+  </body>
+</html>

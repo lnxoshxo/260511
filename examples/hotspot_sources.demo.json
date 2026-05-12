@@ -1,0 +1,6 @@
+[
+  {
+    "name": "demo-hotspots",
+    "url": "data:application/json,%7B%22items%22%3A%5B%7B%22topic%22%3A%22AI%22%2C%22reason%22%3A%22AI%20application%20adoption%20accelerates%22%2C%22stockCode%22%3A%22000001%22%2C%22stockName%22%3A%22Demo%20Stock%22%2C%22score%22%3A%2288%22%7D%2C%7B%22plateName%22%3A%22Robotics%22%2C%22description%22%3A%22Industry%20policy%20and%20order%20growth%20drive%20attention%22%2C%22securityCode%22%3A%22300001%22%2C%22securityName%22%3A%22Demo%20Tech%22%2C%22heat%22%3A%2292.5%22%7D%5D%7D"
+  }
+]
