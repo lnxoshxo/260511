@@ -1,0 +1,8 @@
+PyQt6>=6.6
+py7zr>=0.21
+rarfile>=4.1
+lz4>=4.3
+zstandard>=0.22
+send2trash>=1.8
+psutil>=5.9
+tqdm>=4.66

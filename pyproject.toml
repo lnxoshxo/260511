@@ -1,0 +1,49 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "zipora"
+version = "0.1.0"
+description = "A modern cross-platform desktop archive manager."
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [{ name = "Zipora Developers" }]
+dependencies = [
+    "PyQt6>=6.6",
+    "py7zr>=0.21",
+    "rarfile>=4.1",
+    "lz4>=4.3",
+    "zstandard>=0.22",
+    "send2trash>=1.8",
+    "psutil>=5.9",
+    "tqdm>=4.66",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-cov>=5.0",
+    "ruff>=0.5",
+    "mypy>=1.10",
+    "pyinstaller>=6.6",
+]
+windows = ["pywin32>=306"]
+macos = ["pyobjc>=10.0"]
+
+[project.scripts]
+zipora = "zipora.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
